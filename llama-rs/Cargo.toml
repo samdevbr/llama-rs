@@ -1,0 +1,7 @@
+[package]
+name = "llama-rs"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+llama-sys = { version = "0.1.0", path = "../llama-sys" }
