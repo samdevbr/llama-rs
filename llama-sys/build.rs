@@ -7,8 +7,8 @@ use cmake::Config;
 
 fn main() {
     let lib_path = Config::new("vendor/llama.cpp")
-        .define("LLAMA_STATIC", "ON")
-        .define("BUILD_SHARED_LIBS", "OFF")
+        .define("LLAMA_STATIC", "OFF")
+        .define("BUILD_SHARED_LIBS", "ON")
         .define("LLAMA_CUBLAS", "ON")
         .define("LLAMA_BUILD_EXAMPLES", "OFF")
         .define("LLAMA_BUILD_TESTS", "OFF")
@@ -19,7 +19,7 @@ fn main() {
         lib_path.display()
     );
 
-    println!("cargo:rustc-link-lib=static=llama");
+    println!("cargo:rustc-link-lib=dylib=llama");
 
     let bindings = bindgen::builder()
         .header("wrapper.h")
