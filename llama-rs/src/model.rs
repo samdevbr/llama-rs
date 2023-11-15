@@ -1,10 +1,13 @@
 use std::ffi::CString;
 
-use crate::error::{Error, Result};
+use crate::{
+    batch::Batch,
+    error::{Error, Result},
+};
 use llama_sys::{
-    llama_backend_free, llama_backend_init, llama_context, llama_context_params, llama_free,
-    llama_free_model, llama_load_model_from_file, llama_model, llama_model_params,
-    llama_new_context_with_model,
+    llama_backend_free, llama_backend_init, llama_context, llama_context_params, llama_decode,
+    llama_free, llama_free_model, llama_load_model_from_file, llama_model, llama_model_params,
+    llama_new_context_with_model, llama_token, llama_tokenize,
 };
 
 use rand::Rng;
@@ -101,6 +104,31 @@ impl<'a> Model<'a> {
 
         Ok(Self(m))
     }
+
+    pub fn tokenize(&self, prompt: String, add_bos: bool, special: bool) -> Vec<llama_token> {
+        let mut tokens = Vec::<llama_token>::with_capacity(match add_bos {
+            true => prompt.len() + 1,
+            false => prompt.len(),
+        });
+
+        let prompt = CString::new(prompt).unwrap();
+
+        unsafe {
+            let n = llama_tokenize(
+                self.as_ref(),
+                prompt.as_ptr(),
+                prompt.as_bytes().len() as i32,
+                tokens.as_mut_ptr(),
+                tokens.capacity() as i32,
+                add_bos,
+                special,
+            );
+
+            tokens.set_len(n as usize);
+        }
+
+        tokens
+    }
 }
 
 impl<'a> AsRef<llama_model> for Model<'a> {
@@ -175,6 +203,21 @@ impl Default for ContextParamsBuilder {
 }
 
 impl ContextParamsBuilder {
+    pub fn seed(mut self, seed: u32) -> Self {
+        self.seed = seed;
+        self
+    }
+
+    pub fn n_ctx(mut self, n_ctx: u32) -> Self {
+        self.n_ctx = n_ctx;
+        self
+    }
+
+    pub fn n_batch(mut self, n_batch: u32) -> Self {
+        self.n_batch = n_batch;
+        self
+    }
+
     pub fn rope_scaling_type(mut self, rope_scaling_type: RopeScalingType) -> Self {
         self.rope_scaling_type = rope_scaling_type;
         self
@@ -271,6 +314,12 @@ impl<'a> Context<'a> {
         };
 
         Ok(Self(ctx))
+    }
+
+    pub fn decode(&self, b: Batch) {
+        let ret = unsafe { llama_decode(self.as_ref() as *const _ as *mut _, b.inner) };
+
+        dbg!(ret);
     }
 }
 
