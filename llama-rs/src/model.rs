@@ -316,10 +316,14 @@ impl<'a> Context<'a> {
         Ok(Self(ctx))
     }
 
-    pub fn decode(&self, b: Batch) {
-        let ret = unsafe { llama_decode(self.as_ref() as *const _ as *mut _, b.inner) };
+    pub fn decode(&self, b: Batch) -> Result<()> {
+        let code = unsafe { llama_decode(self.as_ref() as *const _ as *mut _, b.inner) };
 
-        dbg!(ret);
+        if code != 0 {
+            return Err(Error::BatchDecodeFailed { code });
+        }
+
+        Ok(())
     }
 }
 

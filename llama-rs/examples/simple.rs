@@ -22,7 +22,9 @@ fn main() -> Result<()> {
         batch.add(*token, i, vec![0], i == tokens.len() - 1);
     }
 
-    ctx.decode(batch);
+    ctx.decode(batch)?;
+
+    dbg!(&tokens);
 
     Ok(())
 }
