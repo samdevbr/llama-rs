@@ -6,8 +6,9 @@ use crate::{
 };
 use llama_sys::{
     llama_backend_free, llama_backend_init, llama_context, llama_context_params, llama_decode,
-    llama_free, llama_free_model, llama_load_model_from_file, llama_model, llama_model_params,
-    llama_new_context_with_model, llama_token, llama_tokenize,
+    llama_free, llama_free_model, llama_get_model, llama_load_model_from_file, llama_model,
+    llama_model_params, llama_new_context_with_model, llama_token, llama_token_to_piece,
+    llama_tokenize,
 };
 
 use rand::Rng;
@@ -314,6 +315,38 @@ impl<'a> Context<'a> {
         };
 
         Ok(Self(ctx))
+    }
+
+    fn model(&self) -> *const llama_model {
+        unsafe { llama_get_model(self.as_ref()) }
+    }
+
+    fn model_mut(&self) -> *mut llama_model {
+        unsafe { llama_get_model(self.as_ref()) as *mut _ }
+    }
+
+    pub fn token_to_piece(&self, token: &llama_token) -> Result<String> {
+        let mut result = vec![0u8; 8];
+
+        unsafe {
+            let n = llama_token_to_piece(
+                self.model(),
+                *token,
+                result.as_mut_ptr() as *mut i8,
+                result.len() as i32,
+            );
+
+            if n < 0 {
+                return Err(Error::TokenPieceConvertionFailed { code: n });
+            }
+
+            result.set_len(n as usize);
+        }
+
+        match String::from_utf8(result) {
+            Ok(s) => Ok(s),
+            Err(err) => Err(Error::ByteArrayToStringFailed(err)),
+        }
     }
 
     pub fn decode(&self, b: Batch) -> Result<()> {

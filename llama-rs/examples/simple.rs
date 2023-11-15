@@ -16,6 +16,11 @@ fn main() -> Result<()> {
     let prompt = "Hello my name is";
     let tokens = m.tokenize(prompt.to_owned(), false, false);
 
+    for t in &tokens {
+        let piece = ctx.token_to_piece(t)?;
+        print!("{piece}");
+    }
+
     let mut batch = Batch::new(512, 0, 1);
 
     for (i, token) in tokens.iter().enumerate() {
@@ -23,8 +28,6 @@ fn main() -> Result<()> {
     }
 
     ctx.decode(batch)?;
-
-    dbg!(&tokens);
 
     Ok(())
 }
